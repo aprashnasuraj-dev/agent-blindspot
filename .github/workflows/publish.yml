@@ -116,7 +116,7 @@ jobs:
           if [ -n "${NPM_TOKEN:-}" ]; then
             npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
           fi
-          npm publish "${{ steps.pack.outputs.tgz }}" --access public --provenance
+          npm publish "./${{ steps.pack.outputs.tgz }}" --access public --provenance
 
       - name: Verify hosted npm version
         shell: bash
