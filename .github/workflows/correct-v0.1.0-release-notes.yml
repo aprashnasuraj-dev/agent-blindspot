@@ -44,18 +44,19 @@ jobs:
 
           AgentBlindspot reports evidence, inference, and uncertainty separately rather than using missing evidence as a defect verdict.
 
-          ## Install from this release
+          ## Run the CLI from this release
 
-          Node.js 22+ and Git are required.
+          Node.js 22+ and Git are required. The package is **not published to the npm registry**.
 
-          Download `agent-blindspot-0.1.0.tgz` from the assets below, then install the exact release artifact locally:
+          Download `agent-blindspot-0.1.0.tgz` from the assets below, extract it, and run the built CLI directly:
 
           ```bash
-          npm install -g ./agent-blindspot-0.1.0.tgz
-          agent-blindspot --version
+          tar -xzf agent-blindspot-0.1.0.tgz
+          node package/dist/apps/cli/src/index.js --version
+          node package/dist/apps/cli/src/index.js analyze . --agent claude --session ./session.json
           ```
 
-          The package is **not published to npm**. GitHub Releases is the v0.1.0 distribution channel. JSR support is being added separately after this immutable release.
+          GitHub Releases is the authoritative v0.1.0 distribution channel. JSR library distribution is being added separately after this tagged release.
 
           ## Supply-chain evidence
 
