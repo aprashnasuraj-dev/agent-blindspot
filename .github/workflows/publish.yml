@@ -107,6 +107,16 @@ jobs:
           test "$($BIN --version)" = "0.1.0"
           "$BIN" --help | grep -F "AgentBlindspot 0.1.0" >/dev/null
 
+      - name: Reconfirm release SHA is still remote main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "release_sha=$GITHUB_SHA"
+          echo "main_sha=$MAIN_SHA"
+          test "$GITHUB_SHA" = "$MAIN_SHA"
+
       - name: Publish exact tarball to npm
         shell: bash
         env:
