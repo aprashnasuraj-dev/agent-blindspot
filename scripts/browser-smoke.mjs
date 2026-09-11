@@ -147,7 +147,10 @@ try {
   child.stderr.setEncoding('utf8');
   child.stderr.on('data', chunk => { if (stderr.length < 16_384) stderr += chunk; });
 
-  const page = await waitForDevTools(port, 15_000).catch(error => {
+  // Browser process startup is runner/environment overhead and is intentionally
+  // excluded from the <=5s report-usability measurement below. Some hosted
+  // Linux runners take >15s for the Chromium wrapper/DBus session to expose CDP.
+  const page = await waitForDevTools(port, 30_000).catch(error => {
     throw new Error(`${error.message}: ${stderr.slice(-4000)}`);
   });
   const cdp = await connectCdp(page.webSocketDebuggerUrl);
