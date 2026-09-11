@@ -1,0 +1,76 @@
+name: Correct v0.1.0 release notes
+
+on:
+  push:
+    branches:
+      - release/github-v0.1.0
+    paths:
+      - .github/workflows/correct-v0.1.0-release-notes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update published release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/release-notes.md <<'EOF'
+          # AgentBlindspot v0.1.0
+
+          AgentBlindspot is a local-first evidence analyzer for AI coding workflows. It joins Git changes, repository dependency structure, observed coding-agent tool activity, and optional coverage so reviewers can see potentially affected files with no observed inspection or direct verification evidence.
+
+          ## What is in 0.1.0
+
+          - Deterministic JS/TS and Python file/module dependency graphs.
+          - Codex, Claude Code, and OpenCode evidence adapters.
+          - Worktree and commit-range analysis.
+          - LCOV, Istanbul/nyc JSON, and coverage.py JSON ingestion.
+          - Explicit changed / inspected / directly verified / possible blind spot / unknown states.
+          - Standalone JSON and no-CDN HTML reports.
+          - Large-report bounded rendering while preserving the full machine-readable finding set.
+          - `doctor`, `adapters`, and `schema` CLI surfaces.
+          - Reproducible auth-redirect demonstration and deterministic fixtures.
+          - Cross-platform CI, installed-package smoke, CodeQL/SARIF, performance gates, and real Chromium report smoke.
+
+          ## The key boundary
+
+          A possible blind spot is an **attention signal, not proof of a bug**. An uninspected dependent may be completely safe, and a fully inspected/tested change can still contain a defect outside the modeled graph.
+
+          AgentBlindspot reports evidence, inference, and uncertainty separately rather than using missing evidence as a defect verdict.
+
+          ## Install from this release
+
+          Node.js 22+ and Git are required.
+
+          Download `agent-blindspot-0.1.0.tgz` from the assets below, then install the exact release artifact locally:
+
+          ```bash
+          npm install -g ./agent-blindspot-0.1.0.tgz
+          agent-blindspot --version
+          ```
+
+          The package is **not published to npm**. GitHub Releases is the v0.1.0 distribution channel. JSR support is being added separately after this immutable release.
+
+          ## Supply-chain evidence
+
+          This GitHub release points to exact commit `b1014573264feab70cebc198e24e4598a414c65d`.
+
+          The attached tarball was rebuilt from that exact commit, smoke-tested in an isolated consumer directory, and matched the pre-recorded SHA-256:
+
+          `5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa`
+
+          `package-evidence.json` and `SHA256SUMS.txt` are attached alongside the tarball.
+
+          ## Security and privacy
+
+          V1 is local-first and performs no telemetry/report network calls. Raw transcript prose and binary/Base64 content are not retained by default. Repository path escapes are rejected; standalone HTML escapes untrusted strings and uses a restrictive CSP.
+
+          See `SECURITY.md`, `docs/EVIDENCE_MODEL.md`, `docs/COMPATIBILITY.md`, and `docs/KNOWN_LIMITATIONS.md` for the exact evidence and trust boundaries.
+          EOF
+          gh release edit v0.1.0 --repo "$GITHUB_REPOSITORY" --notes-file /tmp/release-notes.md
