@@ -1,89 +1,30 @@
 # AgentBlindspot
 
-> **Your coding agent changed the code. What did it *not* inspect?**
+## Your coding agent changed the code. What did it *not* inspect?
 
 [![CI](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/ci.yml/badge.svg)](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/codeql.yml/badge.svg)](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/codeql.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/aprashnasuraj-dev/agent-blindspot?display_name=tag)](https://github.com/aprashnasuraj-dev/agent-blindspot/releases/tag/v0.1.0)
 [![Node](https://img.shields.io/badge/Node-%3E%3D22-339933?logo=node.js&logoColor=white)](package.json)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-AgentBlindspot is a **local-first evidence analyzer for AI coding agents**. It joins Git changes, observed agent tool activity, repository dependency structure, and optional coverage data to surface **potentially affected code with no observed inspection or direct verification evidence**.
+**AgentBlindspot is a local-first evidence analyzer for AI coding workflows.** It overlays the Git diff, repository dependency structure, observed coding-agent tool activity, and optional coverage to surface **structurally impacted files with no observed inspection or direct verification evidence**.
 
-**Local. Deterministic. No account. No API key. No second LLM judging the first.**
+**Local-first. Deterministic. Zero runtime dependencies. No account. No API key. No second LLM judging the first.**
 
-```text
-changed → structurally impacted → inspected? → directly verified? → possible blind spot / unknown
-```
+> A coding-agent session is chronological. Software dependencies are structural. A run can look thorough, tests can pass, and an unchanged dependent can still sit completely outside the agent's observed inspection path.
 
-> A **possible blind spot is an attention signal, not proof of a bug**.
+AgentBlindspot exists to make that gap visible.
 
-## Quick start
+**[Try the demo](#see-the-blind-spot-in-20-seconds) · [Get the CLI](#quick-start) · [Use the JSR library](#jsr-library) · [Read the evidence model](docs/EVIDENCE_MODEL.md) · [Contribute](#contributing)**
 
-### v0.1.0 CLI — GitHub Release
+---
 
-The first public release is distributed directly from [GitHub Releases](https://github.com/aprashnasuraj-dev/agent-blindspot/releases/tag/v0.1.0). It is **not published to the npm registry**.
+## See the blind spot in 20 seconds
 
-Download `agent-blindspot-0.1.0.tgz`, then use the built CLI directly with Node.js 22+ — no registry install is required:
+Imagine an agent changes authentication code and a login route. Tests pass. The diff looks reasonable.
 
-```bash
-tar -xzf agent-blindspot-0.1.0.tgz
-node package/dist/apps/cli/src/index.js --version
-node package/dist/apps/cli/src/index.js analyze . --agent claude --session ./session.json
-```
-
-The exact v0.1.0 release is tagged at:
-
-```text
-b1014573264feab70cebc198e24e4598a414c65d
-```
-
-Release tarball SHA-256:
-
-```text
-5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa
-```
-
-`SHA256SUMS.txt` and `package-evidence.json` are attached to the same GitHub Release.
-
-If you already use npm as a local package manager, you can optionally install the downloaded file globally without contacting the npm registry:
-
-```bash
-npm install -g ./agent-blindspot-0.1.0.tgz
-agent-blindspot --version
-```
-
-### JSR library distribution
-
-[`@aprashnasuraj-dev/agent-blindspot@0.1.0`](https://jsr.io/@aprashnasuraj-dev/agent-blindspot@0.1.0) is published on JSR through GitHub Actions OIDC. The JSR package is the library/module distribution surface; the CLI remains distributed through the GitHub Release above.
-
-```bash
-deno add jsr:@aprashnasuraj-dev/agent-blindspot@0.1.0
-```
-
-Direct imports are also supported, including the root analysis API plus `./adapters`, `./evidence`, `./git`, `./graph`, `./report`, and `./schema` exports declared in `jsr.json`.
-
-```ts
-import { traverseImpact } from "jsr:@aprashnasuraj-dev/agent-blindspot@0.1.0";
-```
-
-For the checked-in reproducible demo:
-
-```bash
-git clone https://github.com/aprashnasuraj-dev/agent-blindspot.git
-cd agent-blindspot
-npm ci
-npm run demo
-```
-
-Expected summary:
-
-```text
-changed=2 candidates=1 possibleBlindSpots=1 testsObserved=1
-```
-
-## The 20-second example
-
-The demo changes `src/auth/session.ts` and `src/login.ts`. An unchanged `src/admin/middleware.ts` imports the changed session module, but the sample agent evidence contains no qualifying read or direct file coverage for it.
+But an unchanged admin middleware file imports the changed session module, and the available agent evidence never shows that file being read, searched, patched, or directly covered.
 
 ```text
 CHANGED                 src/auth/session.ts
@@ -96,65 +37,281 @@ POSSIBLE BLIND SPOT     src/admin/middleware.ts
   test command          observed: pnpm test (exit 0)
 ```
 
-The point is not “the agent made a bug.” The point is: **this file is structurally exposed to the change, and the available evidence does not show that the agent inspected or directly verified it.**
+That does **not** mean the middleware contains a bug. It means something more precise:
 
-## Why this is different
+> **This file is structurally exposed to the change, but the available evidence does not show that the coding agent inspected or directly verified it.**
 
-Most tools cover only one side of the problem. AgentBlindspot deliberately joins the two sides that are usually separate: **what the repository says is connected** and **what the agent evidence says was actually inspected or verified**.
+Run the exact checked-in demo:
 
-| Approach | Strong at | Missing piece AgentBlindspot focuses on |
-|---|---|---|
-| AI code reviewer | Producing semantic review judgments | Another model can still miss context or invent confidence; it does not prove what the original agent inspected. |
-| Code intelligence / impact graph | Showing callers, imports, dependents, blast radius | Usually does not overlay the coding agent's observed tool activity. |
-| Agent observability | Showing sessions, tool calls, tokens, latency, traces | Usually does not convert repository structure into an impacted-but-uninspected file set. |
-| Test / coverage tooling | Showing execution evidence | Passing tests and direct file coverage are different from agent inspection and structural impact. |
-| **AgentBlindspot** | Joining Git + dependency graph + agent evidence + optional coverage | Intentionally stops at evidence and uncertainty; it does not claim to prove defects. |
+```bash
+git clone https://github.com/aprashnasuraj-dev/agent-blindspot.git
+cd agent-blindspot
+npm ci
+npm run demo
+```
 
-This makes AgentBlindspot complementary to tests, static analysis, code review, code intelligence, and agent observability rather than a replacement for them.
+Expected summary:
 
-## What the states mean
+```text
+changed=2 candidates=1 possibleBlindSpots=1 testsObserved=1
+finding=src/admin/middleware.ts state=POSSIBLE_BLIND_SPOT relevance=1
+```
+
+This is the entire idea in one line:
+
+```text
+changed → structurally impacted → inspected? → directly verified? → possible blind spot / unknown
+```
+
+---
+
+## Why this matters
+
+Coding agents are increasingly good at making coherent changes. The harder review question is often not **“Did the agent explain its patch?”** but **“What relevant code never entered the agent's working set?”**
+
+Tests, code review, code intelligence, coverage, and agent observability each answer a different part of that question. AgentBlindspot joins the evidence surfaces instead of asking another model to guess.
+
+| Evidence surface | What AgentBlindspot asks |
+|---|---|
+| **Git diff** | What actually changed? |
+| **Dependency graph** | What else is structurally exposed to those changes? |
+| **Agent tool evidence** | Which files did the agent demonstrably read, search, write, or patch? |
+| **Coverage** | Which files have direct execution evidence? |
+| **Diagnostics / unknowns** | Where is the evidence too ambiguous to classify safely? |
+
+The output is designed for **review prioritization**, not defect prediction.
+
+---
+
+## Quick start
+
+### CLI from the GitHub Release
+
+The authoritative `v0.1.0` CLI artifact is distributed through [GitHub Releases](https://github.com/aprashnasuraj-dev/agent-blindspot/releases/tag/v0.1.0). It is **not published to the npm registry**.
+
+If Node.js 22+ is installed, the fastest global install is the exact GitHub-hosted tarball:
+
+```bash
+npm install -g https://github.com/aprashnasuraj-dev/agent-blindspot/releases/download/v0.1.0/agent-blindspot-0.1.0.tgz
+agent-blindspot --version
+```
+
+That command uses npm only as the local package installer; the package is downloaded from GitHub, not from the npm registry.
+
+Prefer no global install? Download `agent-blindspot-0.1.0.tgz`, extract it, and run the built CLI directly:
+
+```bash
+tar -xzf agent-blindspot-0.1.0.tgz
+node package/dist/apps/cli/src/index.js --version
+```
+
+A typical analysis looks like:
+
+```bash
+agent-blindspot doctor .
+agent-blindspot analyze . --agent codex --session latest --format both
+```
+
+For Claude Code or OpenCode structured exports, pass the session/export path explicitly:
+
+```bash
+agent-blindspot analyze . --agent claude --session ./session.json --format both
+```
+
+Outputs:
+
+```text
+report.json   complete versioned machine-readable evidence
+report.html   standalone no-CDN review UI
+```
+
+### JSR library
+
+The reusable library/module surface is published as [`@aprashnasuraj-dev/agent-blindspot@0.1.0`](https://jsr.io/@aprashnasuraj-dev/agent-blindspot@0.1.0).
+
+```bash
+deno add jsr:@aprashnasuraj-dev/agent-blindspot@0.1.0
+```
+
+Example:
+
+```ts
+import { traverseImpact } from "jsr:@aprashnasuraj-dev/agent-blindspot@0.1.0";
+```
+
+The JSR package exposes the root analysis API plus:
+
+```text
+./adapters
+./evidence
+./git
+./graph
+./report
+./schema
+```
+
+Use the JSR package for library integration; use the GitHub Release for the packaged CLI.
+
+---
+
+## What you get
+
+| Capability | What it provides |
+|---|---|
+| **Change awareness** | Worktree and commit-range Git diffs with canonical repository paths and line ranges. |
+| **Structural impact** | Deterministic JS/TS and Python reverse dependency traversal. |
+| **Agent evidence** | Conservative Codex, Claude Code, and OpenCode tool-level evidence adapters. |
+| **Direct verification** | LCOV, Istanbul/nyc JSON, and coverage.py JSON file mapping. |
+| **Explicit uncertainty** | Unsupported or ambiguous evidence stays `UNKNOWN` instead of becoming a false finding. |
+| **Reviewable output** | Complete JSON plus standalone HTML with dependency reason, evidence detail, diagnostics, and command observations. |
+| **Local-first operation** | No telemetry/report network calls in V1; no account or external model required. |
+
+### The five evidence states
 
 | State | Meaning |
 |---|---|
-| **Changed** | Git reports the file added, modified, deleted, or renamed. |
-| **Inspected** | A qualifying tool-level read/search/write/patch observation exists. |
-| **Verified direct** | A supplied coverage artifact maps execution to the file. |
-| **Possible blind spot** | A structurally impacted candidate is above the relevance threshold with no observed inspection or direct verification. |
-| **Unknown** | Adapter, path, graph, or evidence uncertainty prevents a confident classification. |
+| **CHANGED** | Git reports the file added, modified, deleted, or renamed. |
+| **INSPECTED** | A qualifying tool-level read/search/write/patch observation exists. |
+| **VERIFIED_DIRECT** | A supplied coverage artifact maps execution directly to the file. |
+| **POSSIBLE_BLIND_SPOT** | A structurally impacted candidate is above the relevance threshold with no observed inspection or direct verification. |
+| **UNKNOWN** | Adapter, path, graph, or evidence uncertainty prevents a confident classification. |
 
-Passing tests are shown separately from direct file coverage. Agent prose such as “I checked X” is not treated as inspection evidence.
+Two boundaries are deliberate:
 
-## Current V1 compatibility
+- **Passing tests are not direct file coverage.** Test-command success is recorded separately.
+- **Agent prose is not inspection evidence.** “I checked this file” does not count unless tool-level evidence supports it.
 
-| Surface | V1 status | Important boundary |
+---
+
+## Why not just use an AI reviewer, tests, or code intelligence?
+
+Because they answer different questions.
+
+| Approach | Strong at | What can still be missing |
 |---|---|---|
-| JavaScript / TypeScript | File/module graph | Common static imports, re-exports, `require()`, and literal dynamic imports; advanced resolver cases may be unknown. |
-| Python | File/module graph | Common absolute/relative repository imports; runtime reflection and `sys.path` mutation remain unknown. |
-| Codex | JSONL import + best-effort local discovery | Streaming, repository-CWD preference, `--session latest`, oversized-record guard, Base64 redaction; schema mappings are deliberately conservative. |
-| Claude Code | Explicit structured JSON / stream-JSON import | Tool-level structured data only; natural-language assertions do not count. |
-| OpenCode | Explicit structured export baseline | Official export/server surfaces evolve; unsupported shapes remain unknown. |
-| Coverage | LCOV, Istanbul/nyc JSON, coverage.py JSON | Direct file coverage only when paths map into the repository. |
+| AI code reviewer | Semantic review judgments | Another model can miss context or invent confidence; it still does not prove what the original agent inspected. |
+| Code intelligence / impact graph | Callers, imports, dependents, blast radius | Usually does not overlay what the coding agent actually touched or inspected. |
+| Agent observability | Sessions, tool calls, tokens, traces, latency | Usually does not translate repository structure into an impacted-but-uninspected file set. |
+| Tests / coverage | Execution evidence | Passing tests do not establish agent inspection; command success is not file coverage. |
+| **AgentBlindspot** | Joining Git + structure + agent evidence + optional coverage | Intentionally stops at evidence and uncertainty instead of claiming to prove defects. |
 
-See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for exact caveats.
+AgentBlindspot is complementary to tests, static analysis, AI review, code intelligence, and observability—not a replacement for them.
 
-## How analysis works
+---
+
+## How it works
 
 1. **Git** identifies changed files and line ranges.
 2. **Agent adapters** normalize observed tool activity into a vendor-neutral evidence model.
-3. **JS/TS and Python import relationships** form a deterministic repository graph.
+3. **JS/TS and Python imports** form a deterministic repository graph.
 4. **Reverse traversal** finds files structurally exposed to changed dependencies.
 5. **Inspection and direct coverage evidence** are joined to each candidate.
-6. Unsupported or ambiguous cases stay **unknown** instead of being silently converted into findings.
+6. **Uncertainty stays visible** instead of being silently converted into a finding.
 
-Default relevance is transparent: direct resolved dependents score `1.00`; deeper candidates decay by `lambda=0.60`, and uncertain edges reduce path confidence.
+Default relevance is intentionally transparent: direct resolved dependents score `1.00`; deeper candidates decay by `lambda=0.60`, while uncertain edges reduce path confidence.
+
+The result is not “AI confidence.” It is an auditable chain of evidence.
+
+---
+
+## Supported today
+
+| Surface | V1 support | Important boundary |
+|---|---|---|
+| **JavaScript / TypeScript** | File/module graph | Common static imports, re-exports, `require()`, and literal dynamic imports; advanced resolver cases may remain unknown. |
+| **Python** | File/module graph | Common absolute/relative repository imports; runtime reflection and `sys.path` mutation remain unknown. |
+| **Codex** | JSONL import + best-effort local discovery | Streaming, repository-CWD preference, `--session latest`, oversized-record guard, Base64 redaction; mappings are conservative. |
+| **Claude Code** | Explicit structured JSON / stream-JSON import | Tool-level structured data only; natural-language assertions do not count as inspection. |
+| **OpenCode** | Explicit structured export baseline | Unsupported or evolving shapes remain unknown rather than guessed. |
+| **Coverage** | LCOV, Istanbul/nyc JSON, coverage.py JSON | Direct verification only when paths map safely into the repository. |
+
+See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for the exact resolver and adapter boundaries.
+
+---
+
+## Reports that can be inspected, not merely trusted
+
+`report.json` is the complete versioned machine contract. `report.html` is a standalone, no-CDN evidence view with expandable per-file details for:
+
+- dependency reason and path;
+- structural distance and relevance;
+- observed inspection evidence;
+- direct verification evidence;
+- command observations;
+- diagnostics and limitations.
+
+For very large results, the HTML initially renders the highest-relevance 1,000 findings and explicitly says that the human view is bounded. The complete deterministic finding set remains in `report.json`.
+
+That distinction is intentional: **UI performance should never silently discard analysis data.**
+
+---
 
 ## Privacy and security
 
-AgentBlindspot is local-first. V1 makes no telemetry or report network calls. Raw transcript prose and binary/Base64 content are not retained by default. Repository paths are canonicalized; paths escaping the repository are rejected. Standalone HTML escapes untrusted strings and uses a CSP with `connect-src 'none'`.
+AgentBlindspot is local-first by design.
 
-Reports can still reveal repository topology or filenames. Use `--redact-paths` for the repository root and review artifacts before sharing. See [`SECURITY.md`](SECURITY.md).
+- No telemetry or report network calls in V1.
+- No external model/API is required.
+- Raw transcript prose and binary/Base64 content are not retained by default.
+- Repository paths are canonicalized; paths escaping the repository are rejected.
+- Standalone HTML escapes untrusted strings and uses a restrictive CSP with `connect-src 'none'`.
+- Reports can still reveal filenames and repository topology; use `--redact-paths` and review artifacts before sharing them.
 
-## CLI
+See [`SECURITY.md`](SECURITY.md) for the threat model and [`docs/EVIDENCE_MODEL.md`](docs/EVIDENCE_MODEL.md) for what each evidence class does—and does not—prove.
+
+### Release and provenance
+
+The GitHub CLI release and the JSR library publication are deliberately separate surfaces.
+
+**GitHub `v0.1.0` CLI release**
+
+```text
+source commit   b1014573264feab70cebc198e24e4598a414c65d
+artifact        agent-blindspot-0.1.0.tgz
+size            45,998 bytes
+SHA-256         5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa
+```
+
+`SHA256SUMS.txt` and `package-evidence.json` are attached to the same [GitHub Release](https://github.com/aprashnasuraj-dev/agent-blindspot/releases/tag/v0.1.0).
+
+**JSR `0.1.0` library publication**
+
+```text
+package         @aprashnasuraj-dev/agent-blindspot@0.1.0
+source commit   89e0252e7a60f8d13219630f85e0c8ef6061a9c9
+auth            GitHub Actions OIDC
+provenance      Sigstore transparency log index 2791733344
+```
+
+The JSR publish workflow used tokenless GitHub OIDC and emitted provenance. See the [successful publish workflow](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/runs/34579647764).
+
+---
+
+## Release gates
+
+The release pipeline is intentionally heavier than the runtime package. Hosted validation exercises:
+
+- Linux Node 22 and Node 24;
+- macOS Node 24;
+- Windows Node 24;
+- installed-package smoke testing;
+- runtime dependency audit;
+- a **1 GiB** session-ingestion benchmark;
+- a **10k-file** graph benchmark;
+- a **100k-edge** impact traversal benchmark;
+- a **10k-finding** standalone report render;
+- a real Chromium browser smoke test;
+- CodeQL JavaScript/TypeScript analysis with SARIF upload;
+- JSR publish dry-run validation.
+
+These are release gates, not universal performance guarantees. They exist to make regressions visible before publication.
+
+---
+
+## CLI reference
+
+<details>
+<summary><strong>Show full CLI surface</strong></summary>
 
 ```text
 agent-blindspot analyze [path]
@@ -176,17 +333,36 @@ agent-blindspot schema --print
 agent-blindspot --version
 ```
 
-Exit codes: `0` analysis completed; `2` configuration/argument error; `3` no usable diff; `4` requested session cannot be parsed/discovered; `5` analysis completed with strict-mode unsupported evidence; `10` is reserved for internal invariant failure.
+Exit codes:
 
-## Output
+```text
+0   analysis completed
+2   configuration / argument error
+3   no usable diff
+4   requested session cannot be parsed or discovered
+5   analysis completed with strict-mode unsupported evidence
+10  internal invariant failure
+```
 
-`report.json` is the complete versioned machine contract. `report.html` is a standalone, no-CDN evidence view with expandable per-file dependency reason, inspection observations, direct-verification observations, diagnostics, and command evidence.
+</details>
 
-For very large reports, the HTML initially renders the highest-relevance 1,000 findings and states the truncation explicitly; the complete deterministic finding set remains in `report.json`. This keeps the human view usable without silently discarding analysis data.
+---
+
+## What AgentBlindspot intentionally does *not* claim
+
+A possible blind spot is **not** a proven bug, vulnerability, or bad patch.
+
+An uninspected dependent can be perfectly safe. A fully inspected and well-tested change can still contain a defect outside the modeled graph. File/module dependency analysis also cannot prove runtime behavior.
+
+That is why AgentBlindspot keeps **evidence**, **inference**, and **uncertainty** separate.
+
+Read [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md), [`docs/EVIDENCE_MODEL.md`](docs/EVIDENCE_MODEL.md), and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) before turning findings into review policy.
+
+---
 
 ## Development
 
-Requirements: Node.js 22+ and Git. Node 24 is the primary release baseline; Node 22 compatibility is tested in CI.
+Requirements: Node.js 22+ and Git. Node 24 is the primary release baseline; Node 22 compatibility is continuously tested.
 
 ```bash
 npm ci
@@ -194,27 +370,55 @@ npm run verify
 node dist/apps/cli/src/index.js doctor .
 ```
 
-The release gates also exercise Linux Node 22/24, macOS Node 24, Windows Node 24, installed-package smoke, a 1 GiB ingestion benchmark, a 10k-file graph benchmark, a 100k-edge traversal benchmark, and a real Chromium 10k-finding report smoke. JSR compatibility is checked separately with a publish dry-run.
+Useful commands:
 
-## Limitations and counterexample
+```bash
+npm run typecheck
+npm test
+npm run demo
+npm run benchmark
+npm run browser:smoke
+npm run package:smoke
+```
 
-A fully tested change can still contain a defect outside the modeled graph, while an uninspected dependent can be perfectly safe. File/module dependency analysis also cannot prove runtime behavior. AgentBlindspot therefore reports evidence, inference, and uncertainty rather than converting missing evidence into a defect claim.
+The package has **zero runtime dependencies**; TypeScript and Node types are development-only dependencies.
 
-Read [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md), [`docs/EVIDENCE_MODEL.md`](docs/EVIDENCE_MODEL.md), and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) before using results as a review policy.
+---
 
 ## Contributing
 
-The highest-value contributions are small reproducible fixtures: adapter schema samples (redacted), Windows/path alias cases, Python namespace cases, coverage mappings, resolver counterexamples, and additional language graph adapters.
+The highest-value contributions are small, reproducible counterexamples: cases where the graph, adapter, evidence model, path handling, or coverage mapping is wrong or incomplete.
+
+Good places to jump in:
+
+- [#3 — GitHub Copilot CLI evidence fixture + conservative adapter mapping](https://github.com/aprashnasuraj-dev/agent-blindspot/issues/3)
+- [#4 — deterministic Go import graph support](https://github.com/aprashnasuraj-dev/agent-blindspot/issues/4)
+- [#5 — SARIF / pull-request annotations without changing evidence semantics](https://github.com/aprashnasuraj-dev/agent-blindspot/issues/5)
+- [#6 — reproducible standalone Windows/macOS/Linux CLI binaries](https://github.com/aprashnasuraj-dev/agent-blindspot/issues/6)
+
+Also valuable: redacted adapter schema samples, Windows path cases, Python namespace cases, resolver counterexamples, and coverage mapping fixtures.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), and the issue templates.
 
-## Launch / share
+If AgentBlindspot catches a real blind spot—or produces a wrong one—the most useful contribution is a **minimal reproducible fixture**. That improves the evidence model for everyone.
 
-If the concept is useful, the clearest one-line description is:
+---
+
+## Share the idea
+
+The shortest accurate description is:
 
 > **AgentBlindspot maps what your coding agent changed against what it actually inspected, then surfaces structurally impacted files with missing evidence.**
 
-Release and community-launch copy lives in [`docs/LAUNCH_KIT.md`](docs/LAUNCH_KIT.md).
+Or even shorter:
+
+> **Tests can pass. The diff can look clean. What relevant code did your coding agent never inspect?**
+
+If that question resonates, star the repository, try the 20-second demo, and send the smallest counterexample you can find.
+
+Community-specific launch copy lives in [`docs/LAUNCH_KIT.md`](docs/LAUNCH_KIT.md).
+
+---
 
 ## License
 
