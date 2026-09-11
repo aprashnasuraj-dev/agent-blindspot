@@ -36,7 +36,7 @@ export function traverseImpact(changedPaths: string[], reverse: Map<string, Depe
   return [...best.values()].sort((a, b) => b.relevance - a.relevance || a.path.localeCompare(b.path));
 }
 
-export function classifyCandidates(candidates: CandidateState[], changedFiles: FileNode[], evidence: EvidenceIndex, graphUnknownPaths = new Set<string>()): CandidateFinding[] {
+export function classifyCandidates(candidates: CandidateState[], changedFiles: FileNode[], evidence: EvidenceIndex, graphUnknownPaths: Set<string> = new Set<string>()): CandidateFinding[] {
   const changed = new Set(changedFiles.map(f => f.path));
   return candidates.map(c => {
     const inspected = evidence.isInspected(c.path);
