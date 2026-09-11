@@ -1,0 +1,29 @@
+name: JSR preflight
+
+on:
+  push:
+    branches:
+      - post-v0.1.0-jsr
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-jsr:
+    name: Verify JSR package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Clean install
+        run: npm ci
+      - name: Verify source and demo
+        run: npm run verify
+      - name: JSR dry run
+        run: npx --yes jsr@0.14.3 publish --dry-run
