@@ -21,17 +21,34 @@ A possible blind spot is an **attention signal, not proof of a bug**. An uninspe
 
 AgentBlindspot reports evidence, inference, and uncertainty separately rather than using missing evidence as a defect verdict.
 
-## Install
+## Distribution
+
+v0.1.0 is distributed through the GitHub Release tagged `v0.1.0`. It is not published to the npm registry.
+
+Download `agent-blindspot-0.1.0.tgz`, extract it, and run the built CLI with Node.js 22+:
 
 ```bash
-npx agent-blindspot@0.1.0 . --agent claude --session ./session.json
+tar -xzf agent-blindspot-0.1.0.tgz
+node package/dist/apps/cli/src/index.js --version
 ```
 
-Node.js 22+ and Git are required.
+The release points to exact commit:
 
-## Supply-chain evidence
+```text
+b1014573264feab70cebc198e24e4598a414c65d
+```
 
-The release workflow publishes the exact tarball that was smoke-tested in an isolated consumer directory, records its SHA-256 and size, and attaches both the tarball and `package-evidence.json` to this GitHub Release. npm publication happens before the GitHub release/tag is created, so an npm authorization failure cannot produce a false release tag.
+The attached tarball SHA-256 is:
+
+```text
+5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa
+```
+
+`SHA256SUMS.txt` and `package-evidence.json` are attached to the release.
+
+## JSR follow-up
+
+The source has been prepared for JSR under the intended package name `@aprashnasuraj-dev/agent-blindspot`. A full JSR publish dry-run passes. Publication remains separate from this v0.1.0 GitHub Release and requires the JSR scope/package to be created and linked to the GitHub repository before tokenless OIDC publishing can run.
 
 ## Security and privacy
 
