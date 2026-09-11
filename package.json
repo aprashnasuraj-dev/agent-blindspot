@@ -1,7 +1,7 @@
 {
   "name": "agent-blindspot",
   "version": "0.1.0",
-  "description": "Local-first evidence analyzer for possible coding-agent blind spots.",
+  "description": "Local-first evidence analyzer that finds potentially impacted code your coding agent did not inspect or directly verify.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -12,7 +12,24 @@
     "url": "https://github.com/aprashnasuraj-dev/agent-blindspot/issues"
   },
   "homepage": "https://github.com/aprashnasuraj-dev/agent-blindspot#readme",
-  "keywords": ["coding-agents", "developer-tools", "static-analysis", "dependency-graph", "local-first"],
+  "keywords": [
+    "ai",
+    "ai-agents",
+    "coding-agent",
+    "coding-agents",
+    "agentic-coding",
+    "claude-code",
+    "codex",
+    "opencode",
+    "code-review",
+    "developer-tools",
+    "static-analysis",
+    "impact-analysis",
+    "dependency-graph",
+    "code-coverage",
+    "agent-observability",
+    "local-first"
+  ],
   "engines": {
     "node": ">=22"
   },

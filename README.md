@@ -1,20 +1,48 @@
 # AgentBlindspot
 
-> **See what your coding agent never checked.**
+> **Your coding agent changed the code. What did it *not* inspect?**
 
-AgentBlindspot overlays coding-agent activity on a repository dependency graph to show **potentially affected code with no observed inspection or direct verification evidence**.
+[![CI](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/ci.yml/badge.svg)](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/codeql.yml/badge.svg)](https://github.com/aprashnasuraj-dev/agent-blindspot/actions/workflows/codeql.yml)
+[![Node](https://img.shields.io/badge/Node-%3E%3D22-339933?logo=node.js&logoColor=white)](package.json)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-**Local. No account. No API key. No second LLM judging the first.**
+AgentBlindspot is a **local-first evidence analyzer for AI coding agents**. It joins Git changes, observed agent tool activity, repository dependency structure, and optional coverage data to surface **potentially affected code with no observed inspection or direct verification evidence**.
 
-```bash
-npx agent-blindspot . --agent claude --session ./session.json
+**Local. Deterministic. No account. No API key. No second LLM judging the first.**
+
+```text
+changed → structurally impacted → inspected? → directly verified? → possible blind spot / unknown
 ```
 
-> `npx` becomes the primary install path only after the package is published. Until then, clone the repository and use the development commands below.
+> A **possible blind spot is an attention signal, not proof of a bug**.
+
+## Quick start
+
+After the npm release is available:
+
+```bash
+npx agent-blindspot@latest . --agent claude --session ./session.json
+```
+
+For the checked-in reproducible demo:
+
+```bash
+git clone https://github.com/aprashnasuraj-dev/agent-blindspot.git
+cd agent-blindspot
+npm ci
+npm run demo
+```
+
+Expected summary:
+
+```text
+changed=2 candidates=1 possibleBlindSpots=1 testsObserved=1
+```
 
 ## The 20-second example
 
-The checked-in demo changes `src/auth/session.ts` and `src/login.ts`. An unchanged `src/admin/middleware.ts` imports the changed session module, but the sample agent evidence contains no read or direct coverage for it.
+The demo changes `src/auth/session.ts` and `src/login.ts`. An unchanged `src/admin/middleware.ts` imports the changed session module, but the sample agent evidence contains no qualifying read or direct file coverage for it.
 
 ```text
 CHANGED                 src/auth/session.ts
@@ -27,16 +55,21 @@ POSSIBLE BLIND SPOT     src/admin/middleware.ts
   test command          observed: pnpm test (exit 0)
 ```
 
-That is an **attention signal, not proof of a bug**.
+The point is not “the agent made a bug.” The point is: **this file is structurally exposed to the change, and the available evidence does not show that the agent inspected or directly verified it.**
 
-Reproduce it:
+## Why this is different
 
-```bash
-npm ci
-npm run demo
-```
+Most tools cover only one side of the problem. AgentBlindspot deliberately joins the two sides that are usually separate: **what the repository says is connected** and **what the agent evidence says was actually inspected or verified**.
 
-Expected summary: `changed=2 candidates=1 possibleBlindSpots=1 testsObserved=1`.
+| Approach | Strong at | Missing piece AgentBlindspot focuses on |
+|---|---|---|
+| AI code reviewer | Producing semantic review judgments | Another model can still miss context or invent confidence; it does not prove what the original agent inspected. |
+| Code intelligence / impact graph | Showing callers, imports, dependents, blast radius | Usually does not overlay the coding agent's observed tool activity. |
+| Agent observability | Showing sessions, tool calls, tokens, latency, traces | Usually does not convert repository structure into an impacted-but-uninspected file set. |
+| Test / coverage tooling | Showing execution evidence | Passing tests and direct file coverage are different from agent inspection and structural impact. |
+| **AgentBlindspot** | Joining Git + dependency graph + agent evidence + optional coverage | Intentionally stops at evidence and uncertainty; it does not claim to prove defects. |
+
+This makes AgentBlindspot complementary to tests, static analysis, code review, code intelligence, and agent observability rather than a replacement for them.
 
 ## What the states mean
 
@@ -48,7 +81,7 @@ Expected summary: `changed=2 candidates=1 possibleBlindSpots=1 testsObserved=1`.
 | **Possible blind spot** | A structurally impacted candidate is above the relevance threshold with no observed inspection or direct verification. |
 | **Unknown** | Adapter, path, graph, or evidence uncertainty prevents a confident classification. |
 
-Passing tests are shown separately from direct file coverage. Agent prose such as “I checked X” is not inspection evidence.
+Passing tests are shown separately from direct file coverage. Agent prose such as “I checked X” is not treated as inspection evidence.
 
 ## Current V1 compatibility
 
@@ -65,11 +98,12 @@ See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for exact caveats.
 
 ## How analysis works
 
-1. Git identifies the changed files and line ranges.
-2. Agent adapters normalize observed tool activity into a vendor-neutral event model.
-3. JS/TS and Python import relationships form a deterministic repository graph.
-4. Reverse traversal finds files structurally exposed to changed dependencies.
-5. Inspection and direct coverage evidence are joined to each candidate; unsupported or ambiguous cases stay unknown.
+1. **Git** identifies changed files and line ranges.
+2. **Agent adapters** normalize observed tool activity into a vendor-neutral evidence model.
+3. **JS/TS and Python import relationships** form a deterministic repository graph.
+4. **Reverse traversal** finds files structurally exposed to changed dependencies.
+5. **Inspection and direct coverage evidence** are joined to each candidate.
+6. Unsupported or ambiguous cases stay **unknown** instead of being silently converted into findings.
 
 Default relevance is transparent: direct resolved dependents score `1.00`; deeper candidates decay by `lambda=0.60`, and uncertain edges reduce path confidence.
 
@@ -77,19 +111,7 @@ Default relevance is transparent: direct resolved dependents score `1.00`; deepe
 
 AgentBlindspot is local-first. V1 makes no telemetry or report network calls. Raw transcript prose and binary/Base64 content are not retained by default. Repository paths are canonicalized; paths escaping the repository are rejected. Standalone HTML escapes untrusted strings and uses a CSP with `connect-src 'none'`.
 
-Reports may still reveal repository topology or filenames. Use `--redact-paths` for the repository root and review artifacts before sharing. See [`SECURITY.md`](SECURITY.md).
-
-## Development quick start
-
-Requirements: Node.js 22+ and Git. Node 24 LTS is the primary release baseline; Node 22 compatibility is tested in CI.
-
-```bash
-git clone https://github.com/aprashnasuraj-dev/agent-blindspot.git
-cd agent-blindspot
-npm ci
-npm run verify
-node dist/apps/cli/src/index.js doctor .
-```
+Reports can still reveal repository topology or filenames. Use `--redact-paths` for the repository root and review artifacts before sharing. See [`SECURITY.md`](SECURITY.md).
 
 ## CLI
 
@@ -117,7 +139,21 @@ Exit codes: `0` analysis completed; `2` configuration/argument error; `3` no usa
 
 ## Output
 
-`report.json` is the complete versioned machine contract. `report.html` is a standalone, no-CDN evidence view with expandable per-file dependency reason, inspection observations, direct-verification observations, diagnostics, and command evidence. For very large reports, the HTML initially renders the highest-relevance 1,000 findings and states the truncation explicitly; the complete deterministic finding set remains in `report.json`. This keeps the human view usable without silently discarding analysis data.
+`report.json` is the complete versioned machine contract. `report.html` is a standalone, no-CDN evidence view with expandable per-file dependency reason, inspection observations, direct-verification observations, diagnostics, and command evidence.
+
+For very large reports, the HTML initially renders the highest-relevance 1,000 findings and states the truncation explicitly; the complete deterministic finding set remains in `report.json`. This keeps the human view usable without silently discarding analysis data.
+
+## Development
+
+Requirements: Node.js 22+ and Git. Node 24 is the primary release baseline; Node 22 compatibility is tested in CI.
+
+```bash
+npm ci
+npm run verify
+node dist/apps/cli/src/index.js doctor .
+```
+
+The release gates also exercise Linux Node 22/24, macOS Node 24, Windows Node 24, installed-package smoke, a 1 GiB ingestion benchmark, a 10k-file graph benchmark, a 100k-edge traversal benchmark, and a real Chromium 10k-finding report smoke.
 
 ## Limitations and counterexample
 
@@ -125,20 +161,20 @@ A fully tested change can still contain a defect outside the modeled graph, whil
 
 Read [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md), [`docs/EVIDENCE_MODEL.md`](docs/EVIDENCE_MODEL.md), and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) before using results as a review policy.
 
-## Benchmarks
+## Contributing
 
-Targets and actual measurements are separated. Run:
+The highest-value contributions are small reproducible fixtures: adapter schema samples (redacted), Windows/path alias cases, Python namespace cases, coverage mappings, resolver counterexamples, and additional language graph adapters.
 
-```bash
-npm run benchmark
-```
+See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), and the issue templates.
 
-Measured release evidence belongs in [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) and must be tied to one exact Git SHA.
+## Launch / share
 
-## Contributing and roadmap
+If the concept is useful, the clearest one-line description is:
 
-Small reproducible fixtures are especially valuable: adapter schema samples (redacted), Windows path cases, Python namespace cases, coverage mappings, and resolver counterexamples. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
+> **AgentBlindspot maps what your coding agent changed against what it actually inspected, then surfaces structurally impacted files with missing evidence.**
+
+Release and community-launch copy lives in [`docs/LAUNCH_KIT.md`](docs/LAUNCH_KIT.md).
 
 ## License
 
-Apache-2.0. See [`LICENSE`](LICENSE). The explicit patent grant is useful for a developer-tool project intended for broad open-source reuse.
+Apache-2.0. See [`LICENSE`](LICENSE). The license includes an explicit patent grant suitable for broad open-source reuse.

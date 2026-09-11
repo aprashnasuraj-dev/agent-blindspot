@@ -1,0 +1,156 @@
+name: Publish v0.1.0
+
+on:
+  push:
+    branches:
+      - release/v0.1.0
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: publish-v0.1.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Exact-SHA npm + GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Require release SHA to equal remote main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "release_sha=$GITHUB_SHA"
+          echo "main_sha=$MAIN_SHA"
+          test "$GITHUB_SHA" = "$MAIN_SHA"
+
+      - name: Setup Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Clean install
+        run: npm ci
+
+      - name: Verify source and demo
+        run: npm run verify
+
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev
+
+      - name: Full release benchmark
+        run: npm run benchmark -- --full
+
+      - name: Browser-scale 10k report smoke
+        run: npm run browser:smoke
+
+      - name: Reject an existing release/version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NAME="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          test "$VERSION" = "0.1.0"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "npm already contains $NAME@$VERSION; refusing a duplicate publish" >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "tag v$VERSION already exists; refusing to move or recreate it" >&2
+            exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "GitHub Release v$VERSION already exists; refusing duplicate release" >&2
+            exit 1
+          fi
+
+      - name: Pack exact artifact and record SHA-256
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-dist
+          npm pack --json --pack-destination release-dist > release-dist/pack.json
+          FILENAME="$(node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('release-dist/pack.json','utf8'));if(!p[0]||!p[0].filename)process.exit(2);process.stdout.write(p[0].filename)")"
+          TGZ="release-dist/$FILENAME"
+          SHA256="$(sha256sum "$TGZ" | awk '{print $1}')"
+          SIZE="$(stat -c%s "$TGZ")"
+          VERSION="$(node -p "require('./package.json').version")"
+          printf '{\n  "filename": "%s",\n  "sha256": "%s",\n  "size": %s,\n  "version": "%s",\n  "gitSha": "%s"\n}\n' "$FILENAME" "$SHA256" "$SIZE" "$VERSION" "$GITHUB_SHA" > release-dist/package-evidence.json
+          echo "tgz=$TGZ" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          cat release-dist/package-evidence.json
+
+      - name: Smoke exact packed artifact in isolated consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          npm --prefix "$TMP" init -y >/dev/null
+          npm --prefix "$TMP" install --ignore-scripts --no-audit --no-fund "$GITHUB_WORKSPACE/${{ steps.pack.outputs.tgz }}" >/dev/null
+          BIN="$TMP/node_modules/.bin/agent-blindspot"
+          test "$($BIN --version)" = "0.1.0"
+          "$BIN" --help | grep -F "AgentBlindspot 0.1.0" >/dev/null
+
+      - name: Publish exact tarball to npm
+        shell: bash
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          fi
+          npm publish "${{ steps.pack.outputs.tgz }}" --access public --provenance
+
+      - name: Verify hosted npm version
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            VALUE="$(npm view agent-blindspot@0.1.0 version 2>/dev/null || true)"
+            if [ "$VALUE" = "0.1.0" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "npm did not expose agent-blindspot@0.1.0 after publication" >&2
+          exit 1
+
+      - name: Create immutable GitHub release/tag at this SHA
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v0.1.0 \
+            "${{ steps.pack.outputs.tgz }}" \
+            release-dist/package-evidence.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "AgentBlindspot v0.1.0" \
+            --notes-file docs/RELEASE_NOTES_0.1.0.md
+
+      - name: Upload release evidence to workflow run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: published-v0.1.0-${{ github.sha }}
+          path: |
+            release-dist/package-evidence.json
+            release-dist/*.tgz
+          if-no-files-found: error
