@@ -19,11 +19,42 @@ changed → structurally impacted → inspected? → directly verified? → poss
 
 ## Quick start
 
-After the npm release is available:
+### v0.1.0 CLI — GitHub Release
+
+The first public release is distributed directly from [GitHub Releases](https://github.com/aprashnasuraj-dev/agent-blindspot/releases/tag/v0.1.0). It is **not published to the npm registry**.
+
+Download `agent-blindspot-0.1.0.tgz`, then use the built CLI directly with Node.js 22+ — no registry install is required:
 
 ```bash
-npx agent-blindspot@latest . --agent claude --session ./session.json
+tar -xzf agent-blindspot-0.1.0.tgz
+node package/dist/apps/cli/src/index.js --version
+node package/dist/apps/cli/src/index.js analyze . --agent claude --session ./session.json
 ```
+
+The exact v0.1.0 release is tagged at:
+
+```text
+b1014573264feab70cebc198e24e4598a414c65d
+```
+
+Release tarball SHA-256:
+
+```text
+5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa
+```
+
+`SHA256SUMS.txt` and `package-evidence.json` are attached to the same GitHub Release.
+
+If you already use npm as a local package manager, you can optionally install the downloaded file globally without contacting the npm registry:
+
+```bash
+npm install -g ./agent-blindspot-0.1.0.tgz
+agent-blindspot --version
+```
+
+### JSR library distribution
+
+The repository is now JSR-compatible and `jsr publish --dry-run` passes without slow-type exceptions. The prepared package name is `@aprashnasuraj-dev/agent-blindspot`. Actual JSR publication will occur only after that JSR scope/package is created and linked to this GitHub repository; until then, GitHub Releases remains the authoritative v0.1.0 distribution channel.
 
 For the checked-in reproducible demo:
 
@@ -153,7 +184,7 @@ npm run verify
 node dist/apps/cli/src/index.js doctor .
 ```
 
-The release gates also exercise Linux Node 22/24, macOS Node 24, Windows Node 24, installed-package smoke, a 1 GiB ingestion benchmark, a 10k-file graph benchmark, a 100k-edge traversal benchmark, and a real Chromium 10k-finding report smoke.
+The release gates also exercise Linux Node 22/24, macOS Node 24, Windows Node 24, installed-package smoke, a 1 GiB ingestion benchmark, a 10k-file graph benchmark, a 100k-edge traversal benchmark, and a real Chromium 10k-finding report smoke. JSR compatibility is checked separately with a publish dry-run.
 
 ## Limitations and counterexample
 
