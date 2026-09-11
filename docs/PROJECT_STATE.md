@@ -16,6 +16,8 @@ The attached release tarball is `agent-blindspot-0.1.0.tgz`, size 45,998 bytes, 
 
 The npm registry is not the v0.1.0 distribution channel.
 
+The JSR library package `@aprashnasuraj-dev/agent-blindspot@0.1.0` is published separately from source commit `89e0252e7a60f8d13219630f85e0c8ef6061a9c9` through GitHub Actions OIDC provenance. The successful publication emitted Sigstore transparency-log index `2791733344`.
+
 ## Completed scope
 
 - Git/path identity and worktree/commit-range diff handling.
@@ -30,13 +32,15 @@ The npm registry is not the v0.1.0 distribution channel.
 - Exact-SHA GitHub v0.1.0 release created only after hosted verification, benchmark, browser smoke, deterministic tarball hash check, and isolated package smoke.
 - JSR manifest added for `@aprashnasuraj-dev/agent-blindspot`.
 - JSR verification passes a real `jsr publish --dry-run` without slow-type bypasses.
-- Tokenless GitHub OIDC JSR publishing workflow prepared.
+- Tokenless GitHub OIDC JSR publishing workflow completed successfully for `0.1.0`.
 
-## Remaining external JSR publication dependency
+## Distribution surfaces
 
-Before the JSR publishing workflow can publish, the JSR scope/package must exist and be linked to `aprashnasuraj-dev/agent-blindspot` in the package settings on jsr.io. Once linked, the dedicated release branch can trigger OIDC publication without a registry token or stored publishing secret.
+- CLI / exact release artifact: GitHub Release `v0.1.0`.
+- Library/module distribution: JSR `@aprashnasuraj-dev/agent-blindspot@0.1.0`.
+- npm registry: intentionally not used for v0.1.0.
 
-JSR is intended as a library/module distribution surface. The v0.1.0 CLI remains directly downloadable from GitHub Releases.
+JSR exposes the root analysis API plus `./adapters`, `./evidence`, `./git`, `./graph`, `./report`, and `./schema` entry points. The CLI remains directly downloadable from GitHub Releases.
 
 ## Optional standalone binaries
 
@@ -48,4 +52,4 @@ GitHub branch/tag protection is repository-setting state. It should be enabled f
 
 ## Recovery protocol
 
-Read `CLAUDE.md`, this file, `docs/DECISIONS.md`, `docs/KNOWN_LIMITATIONS.md`, and `docs/VALIDATION_EVIDENCE.md`; then independently fetch remote `main`, the `v0.1.0` GitHub Release, and hosted workflow state before editing or publishing.
+Read `CLAUDE.md`, this file, `docs/DECISIONS.md`, `docs/KNOWN_LIMITATIONS.md`, and `docs/VALIDATION_EVIDENCE.md`; then independently fetch remote `main`, the `v0.1.0` GitHub Release, the JSR package, and hosted workflow state before editing or publishing.
