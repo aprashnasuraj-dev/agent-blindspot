@@ -1,0 +1,23 @@
+{
+  "name": "@aprashnasuraj-dev/agent-blindspot",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./packages/core/src/index.ts",
+    "./adapters": "./packages/adapters/src/index.ts",
+    "./evidence": "./packages/evidence/src/index.ts",
+    "./git": "./packages/git/src/index.ts",
+    "./graph": "./packages/graph/src/index.ts",
+    "./report": "./packages/report/src/index.ts",
+    "./schema": "./packages/schema/src/index.ts"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "SECURITY.md",
+      "package.json",
+      "packages/**/*.ts"
+    ]
+  }
+}
