@@ -1,0 +1,129 @@
+name: Publish GitHub v0.1.0
+
+on:
+  push:
+    branches:
+      - release/github-v0.1.0
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: github-release-v0.1.0
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Exact-SHA GitHub release
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: b1014573264feab70cebc198e24e4598a414c65d
+      EXPECTED_SHA256: 5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa
+    steps:
+      - name: Checkout exact validated release SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: b1014573264feab70cebc198e24e4598a414c65d
+          fetch-depth: 0
+
+      - name: Require target SHA to still equal remote main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "target_sha=$TARGET_SHA"
+          echo "main_sha=$MAIN_SHA"
+          test "$TARGET_SHA" = "$MAIN_SHA"
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+
+      - name: Setup Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Clean install
+        run: npm ci
+
+      - name: Verify source and demo
+        run: npm run verify
+
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev
+
+      - name: Full release benchmark
+        run: npm run benchmark -- --full
+
+      - name: Browser-scale 10k report smoke
+        run: npm run browser:smoke
+
+      - name: Reject existing v0.1.0 tag or release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin refs/tags/v0.1.0 >/dev/null 2>&1; then
+            echo "tag v0.1.0 already exists; refusing to move or recreate it" >&2
+            exit 1
+          fi
+          if gh release view v0.1.0 >/dev/null 2>&1; then
+            echo "GitHub Release v0.1.0 already exists; refusing duplicate release" >&2
+            exit 1
+          fi
+
+      - name: Pack exact artifact and verify known SHA-256
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-dist
+          npm pack --json --pack-destination release-dist > release-dist/pack.json
+          FILENAME="$(node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('release-dist/pack.json','utf8'));if(!p[0]||!p[0].filename)process.exit(2);process.stdout.write(p[0].filename)")"
+          TGZ="release-dist/$FILENAME"
+          SHA256="$(sha256sum "$TGZ" | awk '{print $1}')"
+          SIZE="$(stat -c%s "$TGZ")"
+          test "$SHA256" = "$EXPECTED_SHA256"
+          printf '{\n  "filename": "%s",\n  "sha256": "%s",\n  "size": %s,\n  "version": "0.1.0",\n  "gitSha": "%s"\n}\n' "$FILENAME" "$SHA256" "$SIZE" "$TARGET_SHA" > release-dist/package-evidence.json
+          printf '%s  %s\n' "$SHA256" "$FILENAME" > release-dist/SHA256SUMS.txt
+          echo "tgz=$TGZ" >> "$GITHUB_OUTPUT"
+          cat release-dist/package-evidence.json
+
+      - name: Smoke exact packed artifact in isolated consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          npm --prefix "$TMP" init -y >/dev/null
+          npm --prefix "$TMP" install --ignore-scripts --no-audit --no-fund "$GITHUB_WORKSPACE/${{ steps.pack.outputs.tgz }}" >/dev/null
+          BIN="$TMP/node_modules/.bin/agent-blindspot"
+          test "$($BIN --version)" = "0.1.0"
+          "$BIN" --help | grep -F "AgentBlindspot 0.1.0" >/dev/null
+
+      - name: Create immutable GitHub release/tag at validated SHA
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v0.1.0 \
+            "${{ steps.pack.outputs.tgz }}" \
+            release-dist/package-evidence.json \
+            release-dist/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$TARGET_SHA" \
+            --title "AgentBlindspot v0.1.0" \
+            --notes-file docs/RELEASE_NOTES_0.1.0.md
+
+      - name: Upload release evidence to workflow run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: github-v0.1.0-${{ env.TARGET_SHA }}
+          path: |
+            release-dist/package-evidence.json
+            release-dist/SHA256SUMS.txt
+            release-dist/*.tgz
+          if-no-files-found: error
