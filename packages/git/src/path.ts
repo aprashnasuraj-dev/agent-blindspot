@@ -5,6 +5,8 @@ export interface PathContext {
   root: string;
   sessionCwd: string;
   caseInsensitive: boolean;
+  rootInput?: string;
+  sessionCwdInput?: string;
 }
 
 function slash(value: string): string {
@@ -21,15 +23,39 @@ function inside(root: string, candidate: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
+function mapLexicalAlias(ctx: PathContext, rawPath: string): string {
+  const resolved = resolve(rawPath);
+  if (ctx.rootInput && inside(ctx.rootInput, resolved)) {
+    return resolve(ctx.root, relative(ctx.rootInput, resolved));
+  }
+  if (ctx.sessionCwdInput && inside(ctx.sessionCwdInput, resolved)) {
+    return resolve(ctx.sessionCwd, relative(ctx.sessionCwdInput, resolved));
+  }
+  return resolved;
+}
+
 export async function createPathContext(root: string, sessionCwd = root): Promise<PathContext> {
-  const canonicalRoot = await realpath(root);
-  const canonicalCwd = isAbsolute(sessionCwd) ? resolve(sessionCwd) : resolve(canonicalRoot, sessionCwd);
+  const resolvedRoot = resolve(root);
+  const canonicalRoot = await realpath(resolvedRoot);
+  const resolvedCwd = isAbsolute(sessionCwd) ? resolve(sessionCwd) : resolve(resolvedRoot, sessionCwd);
+  let canonicalCwd: string;
+  try {
+    canonicalCwd = await realpath(resolvedCwd);
+  } catch {
+    throw new Error(`PATH001: session cwd cannot be resolved safely: ${sessionCwd}`);
+  }
   if (!inside(canonicalRoot, canonicalCwd)) throw new Error(`PATH001: session cwd escapes repository root: ${sessionCwd}`);
-  return { root: canonicalRoot, sessionCwd: canonicalCwd, caseInsensitive: process.platform === 'win32' || process.platform === 'darwin' };
+  return {
+    root: canonicalRoot,
+    sessionCwd: canonicalCwd,
+    rootInput: resolvedRoot,
+    sessionCwdInput: resolvedCwd,
+    caseInsensitive: process.platform === 'win32' || process.platform === 'darwin'
+  };
 }
 
 export function normalizeRepoPath(ctx: PathContext, rawPath: string): string {
-  const anchored = isAbsolute(rawPath) ? resolve(rawPath) : resolve(ctx.sessionCwd, rawPath);
+  const anchored = isAbsolute(rawPath) ? mapLexicalAlias(ctx, rawPath) : resolve(ctx.sessionCwd, rawPath);
   if (!inside(ctx.root, anchored)) throw new Error(`PATH001: evidence path escaped allowed root: ${rawPath}`);
   let rel = slash(relative(ctx.root, anchored));
   if (rel === '') rel = '.';
@@ -37,7 +63,7 @@ export function normalizeRepoPath(ctx: PathContext, rawPath: string): string {
 }
 
 export async function assertNoExternalSymlink(ctx: PathContext, rawPath: string): Promise<void> {
-  const anchored = isAbsolute(rawPath) ? resolve(rawPath) : resolve(ctx.root, rawPath);
+  const anchored = isAbsolute(rawPath) ? mapLexicalAlias(ctx, rawPath) : resolve(ctx.root, rawPath);
   const stat = await lstat(anchored).catch(() => null);
   if (!stat?.isSymbolicLink()) return;
   const target = await realpath(anchored);

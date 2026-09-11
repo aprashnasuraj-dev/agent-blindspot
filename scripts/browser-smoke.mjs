@@ -1,4 +1,4 @@
-import { access, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -29,17 +29,31 @@ const report = buildReport({
   findings, evidence: new EvidenceIndex(), diagnostics: [], limitations: [], generatedAt: '2026-01-01T00:00:00.000Z'
 });
 const html = renderHtml(report);
-if (!html.includes('src/file-09999.ts')) throw new Error('10k report render is incomplete');
+if (report.findings.length !== target) throw new Error('10k report model is incomplete');
+if (!html.includes('showing the first 1000 of 10000 findings')) throw new Error('large-report aggregation notice is missing');
+if (!html.includes('src/file-00000.ts')) throw new Error('initial impact list is missing expected findings');
+
+async function executable(candidate) {
+  if (!candidate) return undefined;
+  if (candidate.includes('/') || candidate.includes('\\')) {
+    try { await access(candidate); return candidate; } catch { return undefined; }
+  }
+  try {
+    const probe = spawn(candidate, ['--version'], { stdio: 'ignore', shell: false });
+    const code = await Promise.race([
+      new Promise(resolveCode => probe.on('close', resolveCode)),
+      new Promise(resolveTimeout => setTimeout(() => { probe.kill('SIGKILL'); resolveTimeout(1); }, 2000))
+    ]);
+    return code === 0 ? candidate : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 async function firstExecutable(candidates) {
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    if (candidate.includes('/') || candidate.includes('\\')) {
-      try { await access(candidate); return candidate; } catch { continue; }
-    }
-    const probe = spawn(process.platform === 'win32' ? 'where' : 'sh', process.platform === 'win32' ? [candidate] : ['-lc', `command -v ${candidate}`], { stdio: 'ignore' });
-    const code = await new Promise(resolveCode => probe.on('close', resolveCode));
-    if (code === 0) return candidate;
+    const found = await executable(candidate);
+    if (found) return found;
   }
   return undefined;
 }
@@ -51,12 +65,64 @@ const browser = await firstExecutable([
 if (!browser) throw new Error('No Chromium/Chrome executable available for browser-scale report smoke');
 const dbusRun = process.platform === 'linux' ? await firstExecutable(['dbus-run-session']) : undefined;
 
+function sleep(ms) { return new Promise(resolveSleep => setTimeout(resolveSleep, ms)); }
+
+async function waitForDevTools(port, deadlineMs) {
+  const deadline = Date.now() + deadlineMs;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/list`);
+      if (response.ok) {
+        const pages = await response.json();
+        const page = pages.find(item => item.type === 'page' && item.webSocketDebuggerUrl);
+        if (page) return page;
+      }
+    } catch {
+      // Browser is still starting.
+    }
+    await sleep(50);
+  }
+  throw new Error('Chromium DevTools endpoint did not become ready');
+}
+
+async function connectCdp(url) {
+  if (typeof WebSocket !== 'function') throw new Error('Node runtime does not provide WebSocket required for browser smoke');
+  const ws = new WebSocket(url);
+  await new Promise((resolveOpen, reject) => {
+    ws.addEventListener('open', resolveOpen, { once: true });
+    ws.addEventListener('error', () => reject(new Error('Failed to connect to Chromium DevTools WebSocket')), { once: true });
+  });
+  let nextId = 0;
+  const pending = new Map();
+  ws.addEventListener('message', event => {
+    const message = JSON.parse(String(event.data));
+    if (!message.id) return;
+    const waiter = pending.get(message.id);
+    if (!waiter) return;
+    pending.delete(message.id);
+    if (message.error) waiter.reject(new Error(message.error.message ?? 'CDP command failed'));
+    else waiter.resolve(message.result ?? {});
+  });
+  return {
+    ws,
+    command(method, params = {}) {
+      return new Promise((resolveCommand, rejectCommand) => {
+        const id = ++nextId;
+        pending.set(id, { resolve: resolveCommand, reject: rejectCommand });
+        ws.send(JSON.stringify({ id, method, params }));
+      });
+    }
+  };
+}
+
 const temp = await mkdtemp(join(tmpdir(), 'agent-blindspot-browser-'));
+let child;
 try {
   const reportPath = join(temp, 'report.html');
-  const screenshotPath = join(temp, 'report.png');
+  const profilePath = join(temp, 'chrome-profile');
   await writeFile(reportPath, html, 'utf8');
   const url = pathToFileURL(reportPath).href;
+  const port = 9222;
   const browserArgs = [
     '--headless=new',
     '--disable-gpu',
@@ -68,29 +134,52 @@ try {
     '--disable-sync',
     '--metrics-recording-only',
     '--no-first-run',
-    '--hide-scrollbars',
-    '--window-size=1280,720',
-    `--screenshot=${screenshotPath}`,
-    url
+    `--user-data-dir=${profilePath}`,
+    `--remote-debugging-port=${port}`,
+    '--remote-debugging-address=127.0.0.1',
+    'about:blank'
   ];
   const command = dbusRun ?? browser;
   const args = dbusRun ? ['--', browser, ...browserArgs] : browserArgs;
-  const started = performance.now();
-  const child = spawn(command, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const detached = process.platform !== 'win32';
+  child = spawn(command, args, { detached, stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
   child.stderr.setEncoding('utf8');
   child.stderr.on('data', chunk => { if (stderr.length < 16_384) stderr += chunk; });
-  let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, 20_000);
-  const code = await new Promise((resolveCode, reject) => { child.on('error', reject); child.on('close', resolveCode); });
-  clearTimeout(timer);
+
+  const page = await waitForDevTools(port, 15_000).catch(error => {
+    throw new Error(`${error.message}: ${stderr.slice(-4000)}`);
+  });
+  const cdp = await connectCdp(page.webSocketDebuggerUrl);
+  const started = performance.now();
+  await cdp.command('Page.navigate', { url });
+
+  let observed;
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
+    const result = await cdp.command('Runtime.evaluate', {
+      expression: `JSON.stringify({ready:document.readyState,href:location.href,rows:document.querySelectorAll('tbody tr').length,notice:document.body.innerText.includes('showing the first 1000 of 10000 findings')})`,
+      returnByValue: true
+    });
+    observed = JSON.parse(result.result?.value ?? '{}');
+    if (observed.ready === 'complete' && observed.href === url && observed.rows >= 1000 && observed.notice === true) break;
+    await sleep(20);
+  }
   const seconds = (performance.now() - started) / 1000;
-  if (timedOut) throw new Error(`Browser smoke environment timed out after ${seconds.toFixed(3)}s: ${stderr.slice(-4000)}`);
-  if (code !== 0) throw new Error(`Browser smoke failed (${code}): ${stderr.slice(-4000)}`);
-  const screenshot = await stat(screenshotPath);
-  if (screenshot.size === 0) throw new Error('Browser smoke produced an empty screenshot');
+  cdp.ws.close();
+  if (!observed || observed.ready !== 'complete' || observed.href !== url || observed.rows < 1000 || observed.notice !== true) {
+    throw new Error(`10k report did not become usable within 10s: ${JSON.stringify(observed)}`);
+  }
   if (seconds > 5) throw new Error(`10k-node report browser smoke exceeded 5s target: ${seconds.toFixed(3)}s`);
-  console.log(JSON.stringify({ browser, dbusSession: Boolean(dbusRun), findings: target, htmlBytes: Buffer.byteLength(html), screenshotBytes: screenshot.size, seconds: Number(seconds.toFixed(3)), targetSeconds: 5, result: 'PASS' }, null, 2));
+  console.log(JSON.stringify({ browser, dbusSession: Boolean(dbusRun), findings: target, initialRows: observed.rows, htmlBytes: Buffer.byteLength(html), seconds: Number(seconds.toFixed(3)), targetSeconds: 5, result: 'PASS' }, null, 2));
 } finally {
+  if (child && child.exitCode === null) {
+    try {
+      if (process.platform !== 'win32' && child.pid) process.kill(-child.pid, 'SIGKILL');
+      else child.kill('SIGKILL');
+    } catch {
+      child.kill('SIGKILL');
+    }
+  }
   await rm(temp, { recursive: true, force: true });
 }

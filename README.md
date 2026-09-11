@@ -117,7 +117,7 @@ Exit codes: `0` analysis completed; `2` configuration/argument error; `3` no usa
 
 ## Output
 
-`report.json` is the versioned machine contract. `report.html` is a standalone, no-CDN evidence view with expandable per-file dependency reason, inspection observations, direct-verification observations, diagnostics, and command evidence. The list view is first-class; an interactive graph is intentionally not required for the initial preview because correctness and evidence clarity outrank visualization breadth.
+`report.json` is the complete versioned machine contract. `report.html` is a standalone, no-CDN evidence view with expandable per-file dependency reason, inspection observations, direct-verification observations, diagnostics, and command evidence. For very large reports, the HTML initially renders the highest-relevance 1,000 findings and states the truncation explicitly; the complete deterministic finding set remains in `report.json`. This keeps the human view usable without silently discarding analysis data.
 
 ## Limitations and counterexample
 

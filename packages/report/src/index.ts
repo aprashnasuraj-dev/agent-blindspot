@@ -4,6 +4,8 @@ import type { CandidateFinding, Diagnostic, ReportModel } from '../../schema/src
 import type { EvidenceIndex } from '../../evidence/src/index.js';
 import { weightedCoverage } from '../../core/src/index.js';
 
+const MAX_INITIAL_HTML_FINDINGS = 1000;
+
 export function buildReport(params: {
   version: string;
   root: string;
@@ -45,7 +47,8 @@ export function escapeHtml(value: string): string {
 function pct(value: number | null): string { return value === null ? 'unknown' : `${Math.round(value * 100)}%`; }
 
 export function renderHtml(report: ReportModel): string {
-  const rows = report.findings.map(f => {
+  const visibleFindings = report.findings.slice(0, MAX_INITIAL_HTML_FINDINGS);
+  const rows = visibleFindings.map(f => {
     const inspection = f.evidence?.inspection.length
       ? f.evidence.inspection.map(item => `<li>${escapeHtml(item)}</li>`).join('')
       : '<li>No qualifying inspection evidence observed.</li>';
@@ -67,6 +70,9 @@ export function renderHtml(report: ReportModel): string {
   const diagnostics = report.diagnostics.length
     ? report.diagnostics.map(d => `<tr><td>${escapeHtml(d.code)}</td><td>${escapeHtml(d.severity)}</td><td>${escapeHtml(d.subsystem)}</td><td>${escapeHtml(d.message)}</td></tr>`).join('')
     : '<tr><td colspan="4">No diagnostics.</td></tr>';
+  const truncation = report.findings.length > visibleFindings.length
+    ? `<p class="warn"><b>Large report:</b> showing the first ${visibleFindings.length} of ${report.findings.length} findings, sorted by relevance. The complete deterministic finding set is preserved in <code>report.json</code>.</p>`
+    : '';
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'none'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
@@ -74,7 +80,7 @@ export function renderHtml(report: ReportModel): string {
 <body><h1>AgentBlindspot</h1><p>Evidence view for possible coding-agent blind spots. Absence of evidence is not proof of failure.</p>
 <header><div class="card"><b>Changed</b><br>${report.summary.changedFiles}</div><div class="card"><b>Candidates</b><br>${report.summary.candidateImpactedFiles}</div><div class="card"><b>Possible blind spots</b><br>${report.summary.possibleBlindSpots}</div><div class="card"><b>Inspection coverage</b><br>${pct(report.summary.inspectionCoverage)}</div><div class="card"><b>Direct verification</b><br>${pct(report.summary.directVerificationCoverage)}</div><div class="card"><b>Tests observed</b><br>${report.summary.testsObserved}</div></header>
 ${report.limitations.length ? `<section class="warn"><b>Limitations / unknowns</b><ul>${limitations}</ul></section>` : ''}
-<h2>Impact list</h2><p class="muted">Expand Evidence to see the deterministic dependency reason, observed inspection/coverage evidence, and uncertainty boundary.</p><table><thead><tr><th>File</th><th>Evidence state</th><th>Relevance</th><th>Distance</th><th>Path confidence</th><th>Evidence detail</th></tr></thead><tbody>${rows}</tbody></table>
+<h2>Impact list</h2><p class="muted">Expand Evidence to see the deterministic dependency reason, observed inspection/coverage evidence, and uncertainty boundary.</p>${truncation}<table><thead><tr><th>File</th><th>Evidence state</th><th>Relevance</th><th>Distance</th><th>Path confidence</th><th>Evidence detail</th></tr></thead><tbody>${rows}</tbody></table>
 <h2>Observed commands</h2><table><thead><tr><th>Command</th><th>Category</th><th>Exit code</th></tr></thead><tbody>${commands}</tbody></table>
 <h2>Diagnostics</h2><table><thead><tr><th>Code</th><th>Severity</th><th>Subsystem</th><th>Message</th></tr></thead><tbody>${diagnostics}</tbody></table>
 </body></html>`;
