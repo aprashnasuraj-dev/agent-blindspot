@@ -56,7 +56,15 @@ jobs:
           node package/dist/apps/cli/src/index.js analyze . --agent claude --session ./session.json
           ```
 
-          GitHub Releases is the authoritative v0.1.0 distribution channel. JSR library distribution is being added separately after this tagged release.
+          GitHub Releases is the authoritative v0.1.0 CLI distribution channel.
+
+          ## JSR library package
+
+          The library/module surface is also published separately as `@aprashnasuraj-dev/agent-blindspot@0.1.0` on JSR:
+
+          https://jsr.io/@aprashnasuraj-dev/agent-blindspot@0.1.0
+
+          It was published through GitHub Actions OIDC from source commit `89e0252e7a60f8d13219630f85e0c8ef6061a9c9` and emitted Sigstore provenance. The JSR package does not replace the GitHub-hosted CLI artifact.
 
           ## Supply-chain evidence
 
