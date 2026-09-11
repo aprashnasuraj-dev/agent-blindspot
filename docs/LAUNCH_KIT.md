@@ -1,6 +1,6 @@
 # Launch kit
 
-Use this only after the exact release SHA has green CI, green CodeQL/SARIF, passing package/browser/benchmark gates, and the npm package is actually reachable.
+Use this only after the exact release SHA has green CI, green CodeQL/SARIF, passing package/browser/benchmark gates, and the GitHub Release assets are reachable with the expected checksum.
 
 ## Positioning
 
@@ -28,6 +28,13 @@ The product wedge is the **join between those evidence surfaces**.
 
 > AgentBlindspot 0.1.0 is a local-first evidence analyzer for coding-agent workflows. It distinguishes changed, structurally impacted, inspected, directly verified, possible-blind-spot, and unknown files without requiring a second LLM. The release includes a reproducible auth example, standalone HTML/JSON output, bounded Codex ingestion, Claude/OpenCode structured adapters, JS/TS + Python graphs, coverage ingestion, cross-platform CI, CodeQL, installed-package smoke, and exact-SHA release evidence.
 
+Release proof points:
+
+- Tag: `v0.1.0`
+- Commit: `b1014573264feab70cebc198e24e4598a414c65d`
+- Tarball SHA-256: `5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa`
+- Distribution: GitHub Release assets; not the npm registry.
+
 ## Hacker News
 
 Suggested title:
@@ -36,7 +43,7 @@ Suggested title:
 
 Body:
 
-> I built AgentBlindspot because coding-agent transcripts are chronological while code dependencies are structural. It overlays observed tool activity on a deterministic repository graph and highlights *possible* blind spots: files exposed to a change with no observed inspection or direct coverage. It runs locally, needs no API key, and does not use a second LLM to judge the first. The repository includes the exact fixture that reproduces the README example and the release gates publish the exact package hash tied to one Git SHA. Possible blind spot != proven bug.
+> I built AgentBlindspot because coding-agent transcripts are chronological while code dependencies are structural. It overlays observed tool activity on a deterministic repository graph and highlights *possible* blind spots: files exposed to a change with no observed inspection or direct coverage. It runs locally, needs no API key, and does not use a second LLM to judge the first. The repository includes the exact fixture that reproduces the README example, and the GitHub Release attaches the exact smoke-tested package hash tied to one Git SHA. Possible blind spot != proven bug.
 
 ## Reddit / developer communities
 
@@ -61,13 +68,20 @@ Alternative:
 ## Launch sequence
 
 1. Confirm the public GitHub repository renders correctly and both CI + CodeQL badges are green.
-2. Confirm `npx agent-blindspot@latest --version` resolves to `0.1.0`.
-3. Confirm the GitHub Release tag resolves to the exact SHA recorded by the release workflow.
+2. Confirm the `v0.1.0` GitHub Release points to `b1014573264feab70cebc198e24e4598a414c65d` and the attached tarball digest is `5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa`.
+3. Confirm the README installation instructions use GitHub Release assets rather than claiming npm-registry availability.
 4. Lead with the 20-second auth demo, not architecture.
 5. Publish one primary launch post first; answer technical questions with concrete fixtures and limitations.
 6. Share to additional communities only with community-specific framing.
 7. Convert legitimate user reports into minimal fixtures and public issues.
 8. Keep the README hero focused on the problem; move deep internals to docs.
+9. After the JSR scope/package is created and linked, publish the library surface through GitHub OIDC and then update launch copy with the verified JSR package URL.
+
+## JSR follow-up
+
+The intended JSR package is `@aprashnasuraj-dev/agent-blindspot`. Repository-side JSR verification already passes. Do not advertise the JSR package as published until its package metadata is independently reachable on jsr.io.
+
+JSR is a library/module distribution surface; the CLI release remains on GitHub Releases. Standalone native-style binaries are a separate follow-up.
 
 ## Repository discoverability checklist
 
