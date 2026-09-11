@@ -33,7 +33,8 @@ Release proof points:
 - Tag: `v0.1.0`
 - Commit: `b1014573264feab70cebc198e24e4598a414c65d`
 - Tarball SHA-256: `5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa`
-- Distribution: GitHub Release assets; not the npm registry.
+- CLI distribution: GitHub Release assets; not the npm registry.
+- Library distribution: `@aprashnasuraj-dev/agent-blindspot@0.1.0` on JSR, published through GitHub Actions OIDC.
 
 ## Hacker News
 
@@ -43,7 +44,7 @@ Suggested title:
 
 Body:
 
-> I built AgentBlindspot because coding-agent transcripts are chronological while code dependencies are structural. It overlays observed tool activity on a deterministic repository graph and highlights *possible* blind spots: files exposed to a change with no observed inspection or direct coverage. It runs locally, needs no API key, and does not use a second LLM to judge the first. The repository includes the exact fixture that reproduces the README example, and the GitHub Release attaches the exact smoke-tested package hash tied to one Git SHA. Possible blind spot != proven bug.
+> I built AgentBlindspot because coding-agent transcripts are chronological while code dependencies are structural. It overlays observed tool activity on a deterministic repository graph and highlights *possible* blind spots: files exposed to a change with no observed inspection or direct coverage. It runs locally, needs no API key, and does not use a second LLM to judge the first. The repository includes the exact fixture that reproduces the README example, and the GitHub Release attaches the exact smoke-tested package hash tied to one Git SHA. The library surface is also published on JSR with GitHub Actions provenance. Possible blind spot != proven bug.
 
 ## Reddit / developer communities
 
@@ -70,16 +71,16 @@ Alternative:
 1. Confirm the public GitHub repository renders correctly and both CI + CodeQL badges are green.
 2. Confirm the `v0.1.0` GitHub Release points to `b1014573264feab70cebc198e24e4598a414c65d` and the attached tarball digest is `5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa`.
 3. Confirm the README installation instructions use GitHub Release assets rather than claiming npm-registry availability.
-4. Lead with the 20-second auth demo, not architecture.
-5. Publish one primary launch post first; answer technical questions with concrete fixtures and limitations.
-6. Share to additional communities only with community-specific framing.
-7. Convert legitimate user reports into minimal fixtures and public issues.
-8. Keep the README hero focused on the problem; move deep internals to docs.
-9. After the JSR scope/package is created and linked, publish the library surface through GitHub OIDC and then update launch copy with the verified JSR package URL.
+4. Confirm JSR shows `@aprashnasuraj-dev/agent-blindspot@0.1.0` and the GitHub Actions publish job completed successfully.
+5. Lead with the 20-second auth demo, not architecture.
+6. Publish one primary launch post first; answer technical questions with concrete fixtures and limitations.
+7. Share to additional communities only with community-specific framing.
+8. Convert legitimate user reports into minimal fixtures and public issues.
+9. Keep the README hero focused on the problem; move deep internals to docs.
 
-## JSR follow-up
+## JSR library surface
 
-The intended JSR package is `@aprashnasuraj-dev/agent-blindspot`. Repository-side JSR verification already passes. Do not advertise the JSR package as published until its package metadata is independently reachable on jsr.io.
+`@aprashnasuraj-dev/agent-blindspot@0.1.0` is published on JSR. The successful workflow used GitHub OIDC and produced Sigstore provenance; no JSR publishing token is stored in the repository.
 
 JSR is a library/module distribution surface; the CLI release remains on GitHub Releases. Standalone native-style binaries are a separate follow-up.
 
