@@ -29,10 +29,12 @@ All notable changes will be documented here.
 ## [Unreleased]
 
 ### Added
-- JSR package manifest for the intended `@aprashnasuraj-dev/agent-blindspot` library distribution.
+- JSR package manifest for `@aprashnasuraj-dev/agent-blindspot` library distribution.
 - JSR publish dry-run validation with no slow-type bypasses.
-- Tokenless GitHub Actions OIDC workflow for JSR publishing after the JSR package is created and linked.
+- Tokenless GitHub Actions OIDC workflow for JSR publishing.
+- Successful JSR publication of `@aprashnasuraj-dev/agent-blindspot@0.1.0` from source commit `89e0252e7a60f8d13219630f85e0c8ef6061a9c9`, with Sigstore provenance.
 
 ### Changed
 - Removed the abandoned npm-registry publishing workflow.
 - Added an explicit public API parameter type required by JSR; runtime behavior is unchanged.
+- README and launch documentation now distinguish the GitHub-hosted CLI artifact from the JSR library/module surface.
