@@ -54,7 +54,17 @@ agent-blindspot --version
 
 ### JSR library distribution
 
-The repository is now JSR-compatible and `jsr publish --dry-run` passes without slow-type exceptions. The prepared package name is `@aprashnasuraj-dev/agent-blindspot`. Actual JSR publication will occur only after that JSR scope/package is created and linked to this GitHub repository; until then, GitHub Releases remains the authoritative v0.1.0 distribution channel.
+[`@aprashnasuraj-dev/agent-blindspot@0.1.0`](https://jsr.io/@aprashnasuraj-dev/agent-blindspot@0.1.0) is published on JSR through GitHub Actions OIDC. The JSR package is the library/module distribution surface; the CLI remains distributed through the GitHub Release above.
+
+```bash
+deno add jsr:@aprashnasuraj-dev/agent-blindspot@0.1.0
+```
+
+Direct imports are also supported, including the root analysis API plus `./adapters`, `./evidence`, `./git`, `./graph`, `./report`, and `./schema` exports declared in `jsr.json`.
+
+```ts
+import { traverseImpact } from "jsr:@aprashnasuraj-dev/agent-blindspot@0.1.0";
+```
 
 For the checked-in reproducible demo:
 
