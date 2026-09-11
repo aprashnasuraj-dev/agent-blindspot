@@ -1,0 +1,51 @@
+{
+  "name": "agent-blindspot",
+  "version": "0.1.0",
+  "description": "Local-first evidence analyzer for possible coding-agent blind spots.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aprashnasuraj-dev/agent-blindspot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aprashnasuraj-dev/agent-blindspot/issues"
+  },
+  "homepage": "https://github.com/aprashnasuraj-dev/agent-blindspot#readme",
+  "keywords": ["coding-agents", "developer-tools", "static-analysis", "dependency-graph", "local-first"],
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "agent-blindspot": "dist/apps/cli/src/index.js"
+  },
+  "files": [
+    "dist/apps/",
+    "dist/packages/",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "docs/COMPATIBILITY.md",
+    "docs/KNOWN_LIMITATIONS.md"
+  ],
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test",
+    "lint": "node scripts/lint.mjs",
+    "format:check": "node scripts/format-check.mjs",
+    "demo": "npm run build && node scripts/demo.mjs",
+    "benchmark": "npm run build && node benchmarks/benchmark.mjs",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run demo",
+    "prepack": "npm run clean && npm run build",
+    "package:smoke": "npm run build && node scripts/package-smoke.mjs",
+    "browser:smoke": "npm run build && node scripts/browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "25.1.0",
+    "typescript": "5.8.3"
+  }
+}

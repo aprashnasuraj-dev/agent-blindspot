@@ -1,0 +1,16 @@
+name: Feature request
+description: Propose a capability with a concrete evidence/reproducibility benefit
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes: {label: Problem, description: "What user decision is difficult today?"}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: Evidence source and uncertainty boundary, description: "What can be observed vs inferred vs unknown?"}
+    validations: {required: true}
+  - type: textarea
+    id: alternative
+    attributes: {label: Alternative path considered}

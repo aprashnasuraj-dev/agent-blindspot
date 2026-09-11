@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: 22
+          - os: ubuntu-latest
+            node: 24
+          - os: windows-latest
+            node: 24
+          - os: macos-latest
+            node: 24
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Clean install
+        run: npm ci
+      - name: Verify source and demo
+        run: npm run verify
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Package manifest dry run
+        run: npm pack --dry-run
+
+  package-smoke:
+    name: Installed package smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Test packed artifact
+        env:
+          AGENT_BLINDSPOT_PACKAGE_EVIDENCE: package-evidence.json
+        run: npm run package:smoke
+      - name: Upload package evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: package-evidence-${{ github.sha }}
+          path: package-evidence.json
+          if-no-files-found: error
+  release-gates:
+    name: Main exact-SHA release gates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Full release benchmark
+        run: npm run benchmark -- --full
+      - name: Browser-scale 10k report smoke
+        run: npm run browser:smoke
+      - name: Installed package smoke + SHA-256
+        env:
+          AGENT_BLINDSPOT_PACKAGE_EVIDENCE: package-evidence.json
+        run: npm run package:smoke
+      - name: Record exact candidate SHA
+        shell: bash
+        run: printf '{"sha":"%s","workflow":"ci-release-gates"}\n' "$GITHUB_SHA" > candidate-sha.json
+      - name: Upload release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-gates-${{ github.sha }}
+          path: |
+            package-evidence.json
+            candidate-sha.json
+          if-no-files-found: error

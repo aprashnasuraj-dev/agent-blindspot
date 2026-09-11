@@ -1,0 +1,21 @@
+name: Classification / uncertainty report
+description: False positive, false negative, or case that should be unknown
+title: "[classification] "
+labels: ["classification"]
+body:
+  - type: dropdown
+    id: kind
+    attributes: {label: Report type, options: [Possible false positive, Possible false negative, Should be unknown, Evidence mapping issue]}
+    validations: {required: true}
+  - type: textarea
+    id: graph
+    attributes: {label: Minimal dependency shape, placeholder: "A -> B means A depends on B"}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: Observed tool/coverage evidence, description: "Redact all sensitive content."}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected classification and why}
+    validations: {required: true}

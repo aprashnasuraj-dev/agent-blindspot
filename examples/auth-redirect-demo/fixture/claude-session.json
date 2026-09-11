@@ -1,0 +1,23 @@
+[
+  {
+    "message": {
+      "content": [
+        {"type": "tool_use", "name": "Read", "input": {"file_path": "src/login.ts"}}
+      ]
+    }
+  },
+  {
+    "message": {
+      "content": [
+        {"type": "tool_use", "name": "Edit", "input": {"file_path": "src/login.ts"}}
+      ]
+    }
+  },
+  {
+    "message": {
+      "content": [
+        {"type": "tool_use", "name": "Bash", "input": {"command": "pnpm test"}, "exitCode": 0}
+      ]
+    }
+  }
+]

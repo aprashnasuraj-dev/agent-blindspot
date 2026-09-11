@@ -1,0 +1,30 @@
+name: Adapter compatibility
+description: Report a Codex, Claude Code, or OpenCode evidence-format compatibility issue
+title: "[adapter] "
+labels: ["adapter", "compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: "Use only synthetic or safely redacted data. Never paste credentials, prompts, private code, or full private transcripts."
+  - type: dropdown
+    id: agent
+    attributes: {label: Agent, options: [Codex, Claude Code, OpenCode]}
+    validations: {required: true}
+  - type: input
+    id: agent_version
+    attributes: {label: Agent version}
+  - type: input
+    id: os_node
+    attributes: {label: OS and Node version}
+  - type: input
+    id: format
+    attributes: {label: Session/export format, placeholder: "rollout JSONL / stream-json / opencode export"}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected evidence}
+  - type: textarea
+    id: observed
+    attributes: {label: Observed behavior}
+  - type: textarea
+    id: repro
+    attributes: {label: Redacted minimal reproduction}
