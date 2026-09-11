@@ -13,7 +13,7 @@ All notable changes will be documented here.
 - `doctor`, `adapters`, and `schema` CLI surfaces.
 - Reproducible auth-redirect demo and deterministic integration/unit fixtures.
 - Cross-platform hosted CI on Linux, macOS, and Windows; installed-package smoke; CodeQL; full benchmark and real-browser release gates.
-- Release workflow that publishes the exact smoke-tested tarball before creating the `v0.1.0` GitHub release tag.
+- Exact-SHA GitHub Release containing the smoke-tested tarball, `package-evidence.json`, and `SHA256SUMS.txt`.
 
 ### Security
 - Streaming JSONL ingestion with oversized-record and Base64 defenses.
@@ -23,8 +23,16 @@ All notable changes will be documented here.
 
 ### Release discipline
 - A possible blind spot is explicitly an attention signal, not proof of a defect.
-- Package publication is tied to one exact Git SHA and one exact tarball hash.
+- The v0.1.0 GitHub Release is tied to exact commit `b1014573264feab70cebc198e24e4598a414c65d` and tarball SHA-256 `5a5f94b6c395a56865068b9a54c11c875a74fd034ae988467b42da0f705292aa`.
+- v0.1.0 is not published to the npm registry.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+- JSR package manifest for the intended `@aprashnasuraj-dev/agent-blindspot` library distribution.
+- JSR publish dry-run validation with no slow-type bypasses.
+- Tokenless GitHub Actions OIDC workflow for JSR publishing after the JSR package is created and linked.
+
+### Changed
+- Removed the abandoned npm-registry publishing workflow.
+- Added an explicit public API parameter type required by JSR; runtime behavior is unchanged.
