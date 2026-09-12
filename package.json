@@ -62,7 +62,7 @@
     "browser:smoke": "npm run build && node scripts/browser-smoke.mjs"
   },
   "devDependencies": {
-    "@types/node": "25.1.0",
+    "@types/node": "26.5.0",
     "typescript": "5.8.3"
   }
 }
