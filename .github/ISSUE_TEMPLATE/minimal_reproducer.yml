@@ -1,0 +1,109 @@
+name: Minimal reproducer
+description: Report a small, reproducible graph, adapter, path, coverage, or classification problem.
+title: "[Reproducer]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reducing the problem. Small synthetic fixtures are preferred over private repositories or real agent transcripts. Please redact secrets and personal data.
+
+  - type: input
+    id: version
+    attributes:
+      label: AgentBlindspot version or source commit
+      description: Use an exact release version or Git commit when possible.
+      placeholder: "v0.1.0 or 592ec7a..."
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include operating system and Node.js version.
+      placeholder: "Ubuntu 24.04, Node 24.x"
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command and exit code
+      description: Paste the smallest command that reproduces the behavior and the resulting exit code.
+      render: shell
+      placeholder: |
+        agent-blindspot analyze . --agent claude --session ./session.json --format both
+        # exit: 4
+    validations:
+      required: true
+
+  - type: textarea
+    id: repository_tree
+    attributes:
+      label: Minimal repository tree
+      description: Show only the files needed to reproduce the behavior.
+      render: text
+      placeholder: |
+        src/
+          changed.ts
+          dependent.ts
+        session.json
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected evidence surface
+      options:
+        - Git diff / path handling
+        - JavaScript / TypeScript dependency graph
+        - Python dependency graph
+        - Codex adapter
+        - Claude Code adapter
+        - OpenCode adapter
+        - Coverage mapping
+        - Classification / evidence state
+        - JSON / HTML report rendering
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected evidence behavior
+      description: State the evidence classification or diagnostic you expected and why.
+      placeholder: "Expected dependent.ts to remain UNKNOWN because the import cannot be resolved deterministically."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual evidence behavior
+      description: Include the observed state, relevant diagnostic text, and the smallest useful report excerpt.
+      placeholder: "Actual: dependent.ts was classified as POSSIBLE_BLIND_SPOT ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Synthetic or redacted fixtures
+      description: Paste or link only the minimum safe fixture needed to reproduce the problem. Do not include secrets or unredacted private transcripts.
+      placeholder: "Minimal session/export or coverage fragment, if applicable."
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Reproducer checks
+      options:
+        - label: I reduced this to the smallest practical reproducer.
+          required: true
+        - label: I removed secrets, credentials, personal data, and unnecessary private transcript content.
+          required: true
+        - label: I distinguished observed evidence from inference in the expected behavior.
+          required: true
