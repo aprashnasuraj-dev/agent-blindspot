@@ -38,3 +38,4 @@ All notable changes will be documented here.
 - Removed the abandoned npm-registry publishing workflow.
 - Added an explicit public API parameter type required by JSR; runtime behavior is unchanged.
 - README and launch documentation now distinguish the GitHub-hosted CLI artifact from the JSR library/module surface.
+- Refreshed the development-only `@types/node` package from 25.1.0 to 26.5.0; this does not add or change a runtime dependency.
